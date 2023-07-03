@@ -2,7 +2,6 @@ import openai
 
 
 openai.api_key = ''
-# openai.organization = "org-RgKQmJEzmxCD6gCMx0Z7FngL"
 # print(openai.Model.list())
 
 # response = openai.Image.create(
