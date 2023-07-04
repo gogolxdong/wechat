@@ -1,5 +1,5 @@
 import chronos, chronos/apps/http/httpserver, chronos/apps/http/httpclient
-import json
+import json, strformat
 
 
 var session = HttpSessionRef.new({HttpClientFlag.Http11Pipeline}, maxRedirections = HttpMaxRedirections)
@@ -35,20 +35,23 @@ proc process(r: RequestFence): Future[HttpResponseRef] {.async.} =
                 var msgType = msglist["msgtype"].getStr
                 var fromgid = msglist["fromgid"].getStr
                 var fromgname = msglist["fromgname"].getStr
+                var fromUser = true
+
                 if  msgType == "1" and msgsvrid != "":
-                    if fromgname == "测试二":
+                    # if fromgname == "测试二":
                         if msg == "PC发文本消息成功": return
-                        var data = %*{"wxid":"39127246200@chatroom","msg": msg}
-                        var req = HttpClientRequestRef.new(session, url="http://localhost:30001/SendTextMsg", meth=MethodPost, body= toOpenArrayByte($data, 0, len($data) - 1))
-                        if req.isOk:
-                            var response = await send(req.get)
-                            if response.status == 200:
-                                var res = cast[string](response.getBodyBytes())
-                                echo res
-                            else:
-                                echo response.status
+                        if isHttps or isContractAddress or fromUser:
+                            var data = %*{"wxid":"39127246200@chatroom","msg": &"{fromgname}\n{msg}"}
+                            var req = HttpClientRequestRef.new(session, url="http://localhost:30001/SendTextMsg", meth=MethodPost, body= toOpenArrayByte($data, 0, len($data) - 1))
+                            if req.isOk:
+                                var response = await send(req.get)
+                                if response.status == 200:
+                                    var res = cast[string](response.getBodyBytes())
+                                    echo res
+                                else:
+                                    echo response.status
                 elif msgType == "3" and msgsvrid != "":
-                    if fromgname == "测试二":
+                    # if fromgname == "测试二":
                         var data = %*{"wxid":"39127246200@chatroom","msgid": msgsvrid}
                         echo "ForwardAllMsg:", data
                         var req = HttpClientRequestRef.new(session, url="http://localhost:30001/ForwardAllMsg", meth=MethodPost, body= toOpenArrayByte($data, 0, len($data) - 1))
