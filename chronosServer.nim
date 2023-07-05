@@ -11,7 +11,7 @@ proc configureMsgReceive =
         var response = waitFor request.send()
         if response.status == 200:
             var res = waitFor response.getBodyBytes()
-            echo cast[string](res)
+            echo parseJson cast[string](res)
     waitFor req.get.closeWait()
     waitFor session.closeWait()
 
@@ -49,7 +49,7 @@ proc process(r: RequestFence): Future[HttpResponseRef] {.async.} =
                                 if response.status == 200:
                                     var body = await response.getBodyBytes()
                                     var res = cast[string](body)
-                                    echo res
+                                    echo parseJson res
                                 else:
                                     echo response.status
                                 await response.closeWait()
@@ -68,7 +68,7 @@ proc process(r: RequestFence): Future[HttpResponseRef] {.async.} =
                             if response.status == 200:
                                 var body = await response.getBodyBytes()
                                 var res = cast[string](body)
-                                echo res
+                                echo parseJson res
                             else:
                                 echo response.status
                             await response.closeWait()
