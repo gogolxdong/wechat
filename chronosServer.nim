@@ -37,7 +37,6 @@ proc process(r: RequestFence): Future[HttpResponseRef] {.async.} =
                 var fromgid = msglist["fromgid"].getStr
                 var fromgname = msglist["fromgname"].getStr
                 var fromUser = true
-
                 if  msgType == "1" and msgsvrid != "":
                     # if fromgname == "测试二":
                         if msg == "PC发文本消息成功": return
@@ -52,8 +51,9 @@ proc process(r: RequestFence): Future[HttpResponseRef] {.async.} =
                                     echo res
                                 else:
                                     echo response.status
-                            await req.get.closeWait()
-                            await session.closeWait()
+                                await response.closeWait()
+                                await req.get.closeWait()
+                            await session.closeWait
                 elif msgType == "3" and msgsvrid != "":
                     # if fromgname == "测试二":
                         var data = %*{"wxid":"39127246200@chatroom","msgid": msgsvrid}
@@ -67,8 +67,9 @@ proc process(r: RequestFence): Future[HttpResponseRef] {.async.} =
                                 echo res
                             else:
                                 echo response.status
-                        await req.get.closeWait()
-                        await session.closeWait()
+                            await response.closeWait()
+                            await req.get.closeWait()
+                        await session.closeWait
             except HttpCriticalError as e:
                 echo e.msg
                 raise e
