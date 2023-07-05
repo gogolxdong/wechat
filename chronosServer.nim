@@ -17,9 +17,9 @@ proc configureMsgReceive =
 
 proc process(r: RequestFence): Future[HttpResponseRef] {.async.} =
     {.gcsafe.}:
-        if r.isOk():
-            let request = r.get()
-            try:
+        try:
+            if r.isOk():
+                let request = r.get()
                 let body = await request.getBody()
                 var message = parseJson cast[string](body)
                 echo message
@@ -47,7 +47,8 @@ proc process(r: RequestFence): Future[HttpResponseRef] {.async.} =
                             if req.isOk:
                                 var response = await send(req.get)
                                 if response.status == 200:
-                                    var res = cast[string](response.getBodyBytes())
+                                    var body = await response.getBodyBytes()
+                                    var res = cast[string](body)
                                     echo res
                                 else:
                                     echo response.status
@@ -59,22 +60,27 @@ proc process(r: RequestFence): Future[HttpResponseRef] {.async.} =
                         var data = %*{"wxid":"39127246200@chatroom","msgid": msgsvrid}
                         echo "ForwardAllMsg:", data
                         var session = HttpSessionRef.new({HttpClientFlag.Http11Pipeline}, maxRedirections = HttpMaxRedirections)
-                        var req = HttpClientRequestRef.new(session, url="http://localhost:30001/ForwardAllMsg", meth=MethodPost, body= toOpenArrayByte($data, 0, len($data) - 1))
+                        var req = HttpClientRequestRef.new(session, url="http://127.0.0.1:30001/ForwardAllMsg", meth=MethodPost, body= toOpenArrayByte($data, 0, len($data) - 1))
                         if req.isOk:
+                            echo "ok"
                             var response = await send(req.get)
+                            echo response.status
                             if response.status == 200:
-                                var res = cast[string](response.getBodyBytes())
+                                var body = await response.getBodyBytes()
+                                var res = cast[string](body)
                                 echo res
                             else:
                                 echo response.status
                             await response.closeWait()
                             await req.get.closeWait()
+                        else:
+                            echo req.error()
                         await session.closeWait
-            except HttpCriticalError as e:
-                echo e.msg
-                raise e
-        else:
-            echo r.error()
+            else: echo r.error()
+        except HttpCriticalError as e:
+            echo e.msg
+            raise e
+       
 
 configureMsgReceive()
 

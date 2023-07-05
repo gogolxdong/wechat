@@ -1,4 +1,5 @@
 --hints:off
 --warnings:off
 --define:release
+--deepcopy:on
 --gc:orc
