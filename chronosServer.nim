@@ -2,9 +2,9 @@ import chronos, chronos/apps/http/httpserver, chronos/apps/http/httpclient
 import json, strformat
 
 
-var session = HttpSessionRef.new({HttpClientFlag.Http11Pipeline}, maxRedirections = HttpMaxRedirections)
 proc configureMsgReceive =
     var config = %*{"isEnable":"1","url":"http://localhost:9001"}
+    var session = HttpSessionRef.new({HttpClientFlag.Http11Pipeline}, maxRedirections = HttpMaxRedirections)
     var req = HttpClientRequestRef.new(session, url="http://localhost:30001/ConfigureMsgRecive", meth=MethodPost, body = toOpenArrayByte($config, 0, len($config) - 1))
     if req.isOk:
         var request = req.get()
@@ -12,7 +12,8 @@ proc configureMsgReceive =
         if response.status == 200:
             var res = waitFor response.getBodyBytes()
             echo cast[string](res)
-
+    waitFor req.get.closeWait()
+    waitFor session.closeWait()
 
 proc process(r: RequestFence): Future[HttpResponseRef] {.async.} =
     {.gcsafe.}:
@@ -42,6 +43,7 @@ proc process(r: RequestFence): Future[HttpResponseRef] {.async.} =
                         if msg == "PC发文本消息成功": return
                         if isHttps or isContractAddress or fromUser:
                             var data = %*{"wxid":"39127246200@chatroom","msg": &"{fromgname}\n{msg}"}
+                            var session = HttpSessionRef.new({HttpClientFlag.Http11Pipeline}, maxRedirections = HttpMaxRedirections)
                             var req = HttpClientRequestRef.new(session, url="http://localhost:30001/SendTextMsg", meth=MethodPost, body= toOpenArrayByte($data, 0, len($data) - 1))
                             if req.isOk:
                                 var response = await send(req.get)
@@ -50,10 +52,13 @@ proc process(r: RequestFence): Future[HttpResponseRef] {.async.} =
                                     echo res
                                 else:
                                     echo response.status
+                            await req.get.closeWait()
+                            await session.closeWait()
                 elif msgType == "3" and msgsvrid != "":
                     # if fromgname == "测试二":
                         var data = %*{"wxid":"39127246200@chatroom","msgid": msgsvrid}
                         echo "ForwardAllMsg:", data
+                        var session = HttpSessionRef.new({HttpClientFlag.Http11Pipeline}, maxRedirections = HttpMaxRedirections)
                         var req = HttpClientRequestRef.new(session, url="http://localhost:30001/ForwardAllMsg", meth=MethodPost, body= toOpenArrayByte($data, 0, len($data) - 1))
                         if req.isOk:
                             var response = await send(req.get)
@@ -62,7 +67,8 @@ proc process(r: RequestFence): Future[HttpResponseRef] {.async.} =
                                 echo res
                             else:
                                 echo response.status
-
+                        await req.get.closeWait()
+                        await session.closeWait()
             except HttpCriticalError as e:
                 echo e.msg
                 raise e
