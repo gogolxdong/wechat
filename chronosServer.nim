@@ -34,8 +34,8 @@ proc process(r: RequestFence): Future[HttpResponseRef] {.async.} =
                         isContractAddress = true
                 var msgsvrid = msglist["msgsvrid"].getStr
                 var msgType = msglist["msgtype"].getStr
-                var fromgid = msglist["fromgid"].getStr
-                var fromgname = msglist["fromgname"].getStr
+                var fromgname = if msglist.hasKey"fromgname": msglist["fromgname"].getStr else: ""
+                var fromgid = if msglist.hasKey"fromgid": msglist["fromgid"].getStr else: ""
                 var fromUser = true
                 if  msgType == "1" and msgsvrid != "":
                     # if fromgname == "测试二":
