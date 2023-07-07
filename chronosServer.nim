@@ -1,5 +1,5 @@
+import json, strformat, xmlparser, xmltree, tables
 import chronos, chronos/apps/http/httpserver, chronos/apps/http/httpclient
-import json, strformat
 
 
 proc configureMsgReceive =
@@ -14,6 +14,44 @@ proc configureMsgReceive =
             echo parseJson cast[string](res)
     waitFor req.get.closeWait()
     waitFor session.closeWait()
+
+template sendImgNoSrc(data:string) {.dirty.} = 
+    echo "SendImgMsg_NoSrc:", data
+    var session = HttpSessionRef.new({HttpClientFlag.Http11Pipeline}, maxRedirections = HttpMaxRedirections)
+    var req = HttpClientRequestRef.new(session, url="http://127.0.0.1:30001/SendImgMsg_NoSrc", meth=MethodPost, body= toOpenArrayByte(data, 0, len(data) - 1))
+    if req.isOk:
+        var response = await send(req.get)
+        echo response.status
+        if response.status == 200:
+            var body = await response.getBodyBytes()
+            var res = cast[string](body)
+            echo parseJson res
+        else:
+            echo response.status
+        await response.closeWait()
+        await req.get.closeWait()
+    else:
+        echo req.error()
+    await session.closeWait
+
+template forward(data:string) {.dirty.} = 
+    echo "ForwardAllMsg:", data
+    var session = HttpSessionRef.new({HttpClientFlag.Http11Pipeline}, maxRedirections = HttpMaxRedirections)
+    var req = HttpClientRequestRef.new(session, url="http://127.0.0.1:30001/ForwardAllMsg", meth=MethodPost, body= toOpenArrayByte(data, 0, len(data) - 1))
+    if req.isOk:
+        var response = await send(req.get)
+        echo response.status
+        if response.status == 200:
+            var body = await response.getBodyBytes()
+            var res = cast[string](body)
+            echo parseJson res
+        else:
+            echo response.status
+        await response.closeWait()
+        await req.get.closeWait()
+    else:
+        echo req.error()
+    await session.closeWait
 
 proc process(r: RequestFence): Future[HttpResponseRef] {.async.} =
     {.gcsafe.}:
@@ -36,12 +74,14 @@ proc process(r: RequestFence): Future[HttpResponseRef] {.async.} =
                 var msgType = msglist["msgtype"].getStr
                 var fromgname = if msglist.hasKey"fromgname": msglist["fromgname"].getStr else: ""
                 var fromgid = if msglist.hasKey"fromgid": msglist["fromgid"].getStr else: ""
-                var fromUser = true
-                if  msgType == "1" and msgsvrid != "":
-                    # if fromgname == "测试二":
+                var fromUser = false
+                var realmsgsvrid = if msglist.hasKey"realmsgsvrid":msglist["realmsgsvrid"].getStr else:""
+                
+                if  msgType == "1" and msgsvrid != "" :
+                    if fromgname == "测试二" :
                         if msg == "PC发文本消息成功": return
                         if isHttps or isContractAddress or fromUser:
-                            var data = %*{"wxid":"39127246200@chatroom","msg": &"{fromgname}\n{msg}"}
+                            var data = %*{"wxid":"19622860062@chatroom","msg": &"{fromgname}\n{msg}"}
                             var session = HttpSessionRef.new({HttpClientFlag.Http11Pipeline}, maxRedirections = HttpMaxRedirections)
                             var req = HttpClientRequestRef.new(session, url="http://localhost:30001/SendTextMsg", meth=MethodPost, body= toOpenArrayByte($data, 0, len($data) - 1))
                             if req.isOk:
@@ -54,28 +94,21 @@ proc process(r: RequestFence): Future[HttpResponseRef] {.async.} =
                                     echo response.status
                                 await response.closeWait()
                                 await req.get.closeWait()
+                            else:
+                                echo req.error()
                             await session.closeWait
                 elif msgType == "3" and msgsvrid != "":
-                    # if fromgname == "测试二":
-                        var data = %*{"wxid":"39127246200@chatroom","msgid": msgsvrid}
-                        echo "ForwardAllMsg:", data
-                        var session = HttpSessionRef.new({HttpClientFlag.Http11Pipeline}, maxRedirections = HttpMaxRedirections)
-                        var req = HttpClientRequestRef.new(session, url="http://127.0.0.1:30001/ForwardAllMsg", meth=MethodPost, body= toOpenArrayByte($data, 0, len($data) - 1))
-                        if req.isOk:
-                            echo "ok"
-                            var response = await send(req.get)
-                            echo response.status
-                            if response.status == 200:
-                                var body = await response.getBodyBytes()
-                                var res = cast[string](body)
-                                echo parseJson res
-                            else:
-                                echo response.status
-                            await response.closeWait()
-                            await req.get.closeWait()
-                        else:
-                            echo req.error()
-                        await session.closeWait
+                    if fromgname == "测试二":
+                        var doc = parseXml(msg)
+                        var imgChild = doc.child("img")
+                        var length = imgChild.attrs["length"]
+                        var md5 = imgChild.attrs["md5"]
+                        var cdnthumburl= imgChild.attrs["cdnthumburl"]
+                        var aeskey= imgChild.attrs["aeskey"]
+
+                        var data = %*{"wxidorgid":"19622860062@chatroom","fileid": cdnthumburl, "authkey": aeskey,"filemd5": md5 ,"filesize": length,"filecrc32":""}
+                        # forward($data)
+                        sendImgNoSrc($data)
             else: echo r.error()
         except HttpCriticalError as e:
             echo e.msg
