@@ -2,7 +2,7 @@ import openai
 
 
 openai.api_key = ''
-# print(openai.Model.list())
+print(openai.Model.list())
 
 # response = openai.Image.create(
 #   prompt="create nounlish",
@@ -24,7 +24,7 @@ openai.api_key = ''
 #   print(e.error)
 
 # openai.api_key = ''
-model_id = 'gpt-4'
+model_id = 'gpt-4-0613'
 
 def ChatGPT_conversation(conversation):
     response = openai.ChatCompletion.create(

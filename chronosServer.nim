@@ -1,7 +1,6 @@
 import json, strformat, xmlparser, xmltree, tables
 import chronos, chronos/apps/http/httpserver, chronos/apps/http/httpclient
 
-
 proc configureMsgReceive =
     var config = %*{"isEnable":"1","url":"http://localhost:9001"}
     var session = HttpSessionRef.new({HttpClientFlag.Http11Pipeline}, maxRedirections = HttpMaxRedirections)
@@ -73,8 +72,9 @@ proc process(r: RequestFence): Future[HttpResponseRef] {.async.} =
                 var msgsvrid = msglist["msgsvrid"].getStr
                 var msgType = msglist["msgtype"].getStr
                 var fromgname = if msglist.hasKey"fromgname": msglist["fromgname"].getStr else: ""
+                var fromid = if msglist.hasKey"fromid": msglist["fromid"].getStr else: ""
+                var fromUser = fromid in [""]
                 var fromgid = if msglist.hasKey"fromgid": msglist["fromgid"].getStr else: ""
-                var fromUser = false
                 var realmsgsvrid = if msglist.hasKey"realmsgsvrid":msglist["realmsgsvrid"].getStr else:""
                 
                 if  msgType == "1" and msgsvrid != "" :
